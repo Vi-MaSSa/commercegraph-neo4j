@@ -1,16 +1,19 @@
 # CommerceGraph — E-commerce Intelligence with Neo4j
 
-> A reproducible graph-data project for exploring customer behavior, product affinity, sales and supplier networks.
+> Este projeto é um exercício de modelagem de dados de e-commerce em Neo4j. Criei um gerador de dados fictícios em Python para testar relações entre clientes, pedidos, produtos e fornecedores sem usar informações reais. Quero usar o projeto para praticar consultas Cypher e comparar perguntas que dependem de percorrer essas relações.
+> **Status:** Fase 1 — Base de projeto e conjuntos de dados.
 
-**Status:** Phase 1 — project foundation and reproducible dataset.
+## 1. Problema de negócio
 
-## 1. Business problem
+> Os dados de um e-commerce possuem várias entidades conectadas entre si. Clientes fazem pedidos, pedidos possuem produtos, produtos estão ligados a categorias e marcas, fornecedores abastecem esses produtos, e cada pedido também tem suas informações de pagamento e entrega.
 
-E-commerce data contains connected entities: customers place orders, orders contain products, products belong to categories and brands, suppliers provide products, and orders are associated with payments and shipments. CommerceGraph models these connections in Neo4j so that multi-hop questions can be explored naturally with Cypher.
+A ideia do CommerceGraph é representar todas essas relações no Neo4j, permitindo explorar as conexões entre os dados e realizar consultas de múltiplos saltos (multi-hop) de forma mais intuitiva utilizando Cypher.
 
-## 2. Why a graph database?
+## 2. Por que plataforma de banco de dados de grafos?
 
-A relational model remains appropriate for transactional systems and structured reporting. A graph model is especially useful when the question depends on traversing relationships, such as finding products bought together, exploring supplier dependencies, or discovering customer-product paths. This project demonstrates those graph-specific use cases rather than claiming that graphs replace relational databases.
+> O modelo de grafos se destaca quando precisamos analisar as relações entre os dados, como identificar produtos que costumam ser comprados juntos, entender as dependências entre fornecedores ou descobrir conexões entre clientes e produtos.
+
+A proposta deste projeto é justamente explorar esses cenários em que o banco de grafos faz diferença, mostrando suas vantagens sem desconsiderar a importância dos bancos relacionais.
 
 ## 3. Technology
 
@@ -20,34 +23,34 @@ A relational model remains appropriate for transactional systems and structured 
 - Neo4j Python Driver
 - CSV for portable source data
 
-## 4. Graph model
+## 4. Modelo de grafo
 
 ### Node labels
 
 `Customer`, `Order`, `Product`, `Category`, `Brand`, `Supplier`, `Payment`, `Shipment`, `Review`
 
-### Relationships
+### Relacionamentos
 
-| Relationship | Pattern | Meaning |
-|---|---|---|
-| `PLACED` | Customer → Order | Customer placed an order |
-| `CONTAINS` | Order → Product | Order contains a product |
-| `IN_CATEGORY` | Product → Category | Product belongs to a category |
-| `BELONGS_TO` | Product → Brand | Product belongs to a brand |
-| `SUPPLIES` | Supplier → Product | Supplier supplies a product |
-| `HAS_PAYMENT` | Order → Payment | Order has a payment |
-| `HAS_SHIPMENT` | Order → Shipment | Order has a shipment |
-| `WROTE` | Customer → Review | Customer wrote a review |
-| `REVIEWS` | Review → Product | Review refers to a product |
+| Relationship   | Pattern            | Meaning                       |
+| -------------- | ------------------ | ----------------------------- |
+| `PLACED`       | Customer → Order   | Customer placed an order      |
+| `CONTAINS`     | Order → Product    | Order contains a product      |
+| `IN_CATEGORY`  | Product → Category | Product belongs to a category |
+| `BELONGS_TO`   | Product → Brand    | Product belongs to a brand    |
+| `SUPPLIES`     | Supplier → Product | Supplier supplies a product   |
+| `HAS_PAYMENT`  | Order → Payment    | Order has a payment           |
+| `HAS_SHIPMENT` | Order → Shipment   | Order has a shipment          |
+| `WROTE`        | Customer → Review  | Customer wrote a review       |
+| `REVIEWS`      | Review → Product   | Review refers to a product    |
 
-### Modeling notes
+### Sobre a modelagem
 
-- Every node has a stable business identifier (`*_id`).
-- Relationships are created with `MERGE` to make imports repeatable.
-- An order can contain multiple products; a product can appear in many orders.
-- The generated data is synthetic and must not be interpreted as real customer or commercial information.
+- Cada node (nó) possui um identificador ne negócio (id).
+- Os relacionamentos são criados pelo 'MERGE' para tomar as importações reptíveis.
+- Um pedido contém varios produtos e um produto pode conter diversos pedidos.
+- Os dados são fictícios, ou seja, nunca deve interpreta-los como informações de clientes/dados comerciais reais.
 
-## 5. Repository structure
+## 5. Estrutura Repository
 
 ```text
 commercegraph-neo4j/
@@ -65,11 +68,11 @@ commercegraph-neo4j/
 
 ### Requirements
 
-- Python 3.10 or newer
-- A Neo4j Aura database and its connection URI
-- Network access to your Aura instance
+- Python 3.10 ou última versão (mais recente)
+- Neo4j Aura database e conexão URI
+- Acesso a instância Aura
 
-### Install dependencies
+### Instalação de dependencias
 
 ```bash
 python -m venv .venv
@@ -81,17 +84,15 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-### Generate the synthetic dataset
+### Dataset fictício
 
 ```bash
 python scripts/generate_dataset.py
 ```
 
-The generator writes CSV files to `data/generated/`. It uses a fixed random seed by default, so the dataset is reproducible.
+### Configuração de credenciais (env)
 
-### Configure Aura credentials
-
-Copy `.env.example` to `.env` and fill in the connection details from Neo4j Aura:
+Copie `.env.example` para `.env` e preencha os detalhes de conexão para Neo4j Aura:
 
 ```env
 NEO4J_URI=neo4j+s://<your-aura-id>.databases.neo4j.io
@@ -100,44 +101,46 @@ NEO4J_PASSWORD=your_password
 NEO4J_DATABASE=neo4j
 ```
 
-Never commit `.env` or publish your database password.
+Nunca commit .env ou credenciais do database.
 
-### Create constraints and import
+### Create constraints - import
 
 ```bash
 python scripts/import_to_aura.py
 ```
 
-The importer reads local CSV files and sends parameterized batches with `UNWIND` through the official Neo4j Python Driver. This approach works with Aura without requiring the database server to access your computer's local files.
+O import lê arquivos CSV locais e envia lotes parametrizados, utilizando `UNWIND`, por meio do driver oficial do Neo4j para Python. Essa abordagem funciona com o Aura, sem a necessidade de que o servidor de banco de dados acesse os arquivos locais do seu computador.
 
-## 7. Validation
+## 7. Validação
 
-After import, run the queries in `cypher/03_validation.cypher` in Neo4j Browser. Confirm that all expected labels exist, identifiers are unique, and relationship counts are non-zero.
+Após a importação, execute as consultas presentes em `cypher/03_validation.cypher` no Neo4j Browser. Confirme se todos os rótulos esperados existem, se os identificadores são únicos e se a contagem de relacionamentos é diferente de zero.
 
-## 8. Business questions
+## 8. Regras de negócio
 
-The analytical query pack will answer questions such as:
+As consultas vão responder perguntas como:
 
-1. Which customers place the most orders?
-2. Which product pairs most often occur in the same order?
-3. Which products have the highest review ratings?
-4. Which suppliers provide the broadest product coverage?
-5. Which products could be recommended to a customer based on co-purchase behavior?
+1. Quais clientes realizam o maior número de pedidos?
+2. Quais pares de produtos aparecem com mais frequência no mesmo pedido?
+3. Quais produtos possuem as melhores avaliações?
+4. Quais fornecedores oferecem a maior variedade de produtos?
+5. Quais produtos poderiam ser recomendados a um cliente com base no comportamento de compra conjunta?
 
-## 9. Data and limitations
+## 9. Dados e limitações
 
-All records are synthetic. The generator is designed for learning and portfolio demonstration, not for production forecasting. Recommendation scores in the initial version are simple co-occurrence counts, not a trained machine-learning model.
+Todos os registros são fictícios. O gerador foi projetado para fins de aprendizado e demonstração em portfólios.
 
 ## 10. Roadmap
 
-- [x] Define project scope and graph schema
-- [x] Add deterministic synthetic-data generator
-- [x] Add Aura importer using batched `UNWIND`
-- [ ] Validate imported graph and capture Browser evidence
-- [ ] Add business query pack and explain query plans
-- [ ] Document performance decisions and troubleshooting
-- [ ] Publish final architecture and result screenshots
+- [x] Definir o escopo do projeto e o esquema do grafo
+- [x] Adicionar gerador determinístico de dados sintéticos
+- [x] Adicionar importador para o Aura usando `UNWIND` em lotes
+- [ ] Validar o grafo importado e registrar evidências no Neo4j Browser
+- [ ] Adicionar conjunto de consultas de negócio e analisar planos de execução
+- [ ] Documentar decisões de desempenho e solução de problemas
+- [ ] Publicar a arquitetura final e capturas de tela dos resultados
 
-## 11. Author
+## 11. Autor
 
-Add your GitHub profile and contact information here.
+- GitHub: [Vi-MaSSa](https://github.com/Vi-MaSSa)
+- E-mail: [vinimassa100@gmail.com](mailto:vinimassa100@gmail.com)
+- LinkedIn: [Vinicius Massagardi](https://www.linkedin.com/in/vinicius01/)
